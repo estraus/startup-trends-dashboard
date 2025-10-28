@@ -256,7 +256,3 @@ This project is open source and available for educational purposes.
 ## Contributing
 
 Feel free to submit issues and enhancement requests!
-
-## Author
-
-Created with Claude Code - Anthropic's AI-powered development assistant.
