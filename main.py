@@ -58,7 +58,16 @@ def main():
     print("Step 1: Loading startup data...")
     print("-" * 70)
     fetcher = StartupDataFetcher()
-    df = fetcher.load_data()
+
+    # Load data based on configuration
+    if config.DATA_SOURCE == "url" and config.DATA_SOURCE_URL:
+        print(f"Data source: Remote URL")
+        print(f"URL: {config.DATA_SOURCE_URL}")
+        df = fetcher.load_data(source="url", url=config.DATA_SOURCE_URL)
+    else:
+        print(f"Data source: {config.DATA_SOURCE}")
+        df = fetcher.load_data(source=config.DATA_SOURCE)
+
     print(f"✓ Loaded {len(df)} startups\n")
 
     # Step 2: Categorize with Claude

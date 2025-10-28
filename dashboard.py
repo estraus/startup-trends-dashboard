@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import pandas as pd
 from typing import Optional
 import config
+from utils import format_funding
 
 
 class StartupDashboard:
@@ -57,7 +58,7 @@ class StartupDashboard:
 
                 html.Div([
                     html.Div([
-                        html.H3(f"${self.data['funding_total'].sum() / 1e9:.1f}B",
+                        html.H3(format_funding(self.data['funding_total'].sum()),
                                style={"margin": "0", "color": "#27ae60"}),
                         html.P("Total Funding", style={"margin": "5px 0 0 0", "color": "#7f8c8d"})
                     ], className="stat-box", style={
@@ -146,17 +147,27 @@ class StartupDashboard:
 
             # Funding Bar Chart
             funding_by_category = filtered_data.groupby("category")["funding_total"].sum().reset_index()
-            funding_by_category["funding_billions"] = funding_by_category["funding_total"] / 1e9
-            funding_by_category = funding_by_category.sort_values("funding_billions", ascending=True)
+            # Use smart formatting: show in millions if < $1B, otherwise billions
+            total_funding = funding_by_category["funding_total"].sum()
+            if total_funding >= 1_000_000_000:
+                funding_by_category["funding_display"] = funding_by_category["funding_total"] / 1e9
+                funding_label = "Funding ($B)"
+                title_text = "Total Funding by Category"
+            else:
+                funding_by_category["funding_display"] = funding_by_category["funding_total"] / 1e6
+                funding_label = "Funding ($M)"
+                title_text = "Total Funding by Category"
+
+            funding_by_category = funding_by_category.sort_values("funding_display", ascending=True)
 
             bar_fig = px.bar(
                 funding_by_category,
-                x="funding_billions",
+                x="funding_display",
                 y="category",
                 orientation="h",
-                title="Total Funding by Category (Billions USD)",
-                labels={"funding_billions": "Funding ($B)", "category": "Category"},
-                color="funding_billions",
+                title=title_text,
+                labels={"funding_display": funding_label, "category": "Category"},
+                color="funding_display",
                 color_continuous_scale="Viridis"
             )
 
@@ -201,7 +212,7 @@ class StartupDashboard:
 
             # Data Table
             table_data = filtered_data[["name", "category", "subcategory", "funding_total", "founded_year"]].copy()
-            table_data["funding_total"] = table_data["funding_total"].apply(lambda x: f"${x/1e6:.1f}M")
+            table_data["funding_total"] = table_data["funding_total"].apply(format_funding)
 
             table = html.Table([
                 html.Thead(
