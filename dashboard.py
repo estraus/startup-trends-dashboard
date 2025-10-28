@@ -211,20 +211,71 @@ class StartupDashboard:
             )
 
             # Data Table
-            table_data = filtered_data[["name", "category", "subcategory", "funding_total", "founded_year"]].copy()
-            table_data["funding_total"] = table_data["funding_total"].apply(format_funding)
+            # Select columns including source, github_stars
+            table_columns = ["name", "source", "category", "github_stars", "funding_total", "founded_year"]
+
+            # Only include columns that exist in the dataframe
+            available_columns = [col for col in table_columns if col in filtered_data.columns]
+            table_data = filtered_data[available_columns].copy()
+
+            # Format funding
+            if "funding_total" in table_data.columns:
+                table_data["funding_total"] = table_data["funding_total"].fillna(0).apply(format_funding)
+
+            # Format github_stars
+            if "github_stars" in table_data.columns:
+                table_data["github_stars"] = table_data["github_stars"].fillna(0).apply(lambda x: f"{int(x):,}" if x > 0 else "N/A")
+
+            # Rename columns for display
+            display_names = {
+                "name": "Name",
+                "source": "Source",
+                "category": "Category",
+                "github_stars": "GitHub ⭐",
+                "funding_total": "Funding",
+                "founded_year": "Founded"
+            }
+
+            # Create table with hyperlinks for name column
+            table_rows = []
+            for i in range(len(table_data)):
+                row_cells = []
+                for col in table_data.columns:
+                    if col == "name":
+                        # Create hyperlink for name
+                        name = table_data.iloc[i]["name"]
+                        # Get URL from github_url or website
+                        url = ""
+                        if "github_url" in filtered_data.columns:
+                            url = filtered_data.iloc[i].get("github_url", "")
+                        if not url and "website" in filtered_data.columns:
+                            url = filtered_data.iloc[i].get("website", "")
+
+                        if url:
+                            cell = html.Td(
+                                html.A(name, href=url, target="_blank",
+                                      style={"color": "#3498db", "textDecoration": "none"}),
+                                style={"padding": "10px", "borderBottom": "1px solid #ddd"}
+                            )
+                        else:
+                            cell = html.Td(name, style={"padding": "10px", "borderBottom": "1px solid #ddd"})
+                    else:
+                        cell = html.Td(
+                            table_data.iloc[i][col],
+                            style={"padding": "10px", "borderBottom": "1px solid #ddd"}
+                        )
+                    row_cells.append(cell)
+                table_rows.append(html.Tr(row_cells))
 
             table = html.Table([
                 html.Thead(
-                    html.Tr([html.Th(col, style={"padding": "10px", "backgroundColor": "#3498db", "color": "white"})
-                            for col in table_data.columns])
-                ),
-                html.Tbody([
                     html.Tr([
-                        html.Td(table_data.iloc[i][col], style={"padding": "10px", "borderBottom": "1px solid #ddd"})
+                        html.Th(display_names.get(col, col),
+                               style={"padding": "10px", "backgroundColor": "#3498db", "color": "white"})
                         for col in table_data.columns
-                    ]) for i in range(len(table_data))
-                ])
+                    ])
+                ),
+                html.Tbody(table_rows)
             ], style={"width": "100%", "borderCollapse": "collapse", "marginTop": "20px"})
 
             return pie_fig, bar_fig, themes_fig, scatter_fig, table
