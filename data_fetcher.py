@@ -272,13 +272,28 @@ class StartupDataFetcher:
         Load startup data from various sources.
 
         Args:
-            source: Data source ('local', 'url', 'sample')
+            source: Data source ('local', 'url', 'sample', 'hybrid')
             url: URL to fetch data from (required if source='url')
 
         Returns:
             DataFrame with startup data
         """
-        if source == "url":
+        if source == "hybrid":
+            # Use the hybrid fetcher for live GitHub + Product Hunt data
+            from hybrid_fetcher import HybridStartupFetcher
+            import config
+
+            hybrid_fetcher = HybridStartupFetcher(
+                github_token=config.GITHUB_TOKEN,
+                ph_token=config.PRODUCTHUNT_TOKEN
+            )
+
+            return hybrid_fetcher.get_combined_data(
+                use_cache=True,
+                cache_max_age_hours=24,
+                apply_enrichment=True
+            )
+        elif source == "url":
             if not url:
                 raise ValueError("URL must be provided when source='url'")
             return self.load_from_csv_url(url)
